@@ -19,34 +19,34 @@ jobs:
       with:
         node-version: '20'
 
-    # 1. 9Router ko globally install karein
     - name: Install 9Router Globally
       run: npm install -g 9router
 
-    # 2. Server ko background me 'nohup' se run karein taaki step end hone par process kill na ho
     - name: Start 9Router Server
       run: |
         nohup 9router > router.log 2>&1 &
         echo "9Router started in background."
         
-    # 3. Wait karein jab tak localhost activate nahi ho jata, phir tasks perform karein
-    - name: Verify and Keep Workflow Alive
-      env:
-        OPENAI_API_BASE: "http://localhost:20128/v1"
+    - name: Verify Server is Live
       run: |
-        echo "Waiting for localhost:20128 to be active..."
-        # 1 minut tak check karega jab tak port up nahi ho jati
+        echo "Waiting for localhost:20128..."
         npx wait-on http://localhost:20128/v1 -t 60000
+        echo "Server is UP!"
+
+    # NAYA STEP: Yeh port 20128 ko internet par public karega
+    - name: Expose Server to Internet & Keep Alive
+      run: |
+        echo "Starting Localtunnel..."
+        # Localtunnel ko background me chalayein aur public URL generate karein
+        nohup npx localtunnel --port 20128 > public_url.txt 2>&1 &
         
-        echo "=== Server is Live! ==="
-        curl -I http://localhost:20128/v1
+        # URL generate hone ka wait karein
+        sleep 5 
         
-        echo "=== Printing 9Router Boot Logs ==="
-        cat router.log
+        echo "=========================================="
+        echo "🚀 APNA DASHBOARD YAHAN OPEN KAREIN:"
+        cat public_url.txt
+        echo "=========================================="
         
-        # ----------------------------------------------------
-        # WARNING: GitHub Actions ki maximum limit 6 hours hoti hai.
-        # Agar aapko ise maximum limit tak 'alive' rakhna hai toh niche wali line uncomment karein:
-        # ----------------------------------------------------
-        echo "Keeping workflow alive..."
-        sleep 21600 # 6 hours in seconds (Aap iski jagah apna actual test script ya bot command run kar sakte hain)
+        echo "Keeping workflow alive for 6 hours..."
+        sleep 21600
