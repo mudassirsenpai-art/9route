@@ -19,34 +19,42 @@ jobs:
       with:
         node-version: '20'
 
+    # 1. Install 9Router
     - name: Install 9Router Globally
       run: npm install -g 9router
 
+    # 2. Start 9Router in background
     - name: Start 9Router Server
       run: |
         nohup 9router > router.log 2>&1 &
         echo "9Router started in background."
         
+    # 3. Wait for localhost to be ready
     - name: Verify Server is Live
       run: |
         echo "Waiting for localhost:20128..."
         npx wait-on http://localhost:20128/v1 -t 60000
         echo "Server is UP!"
 
-    # NAYA STEP: Yeh port 20128 ko internet par public karega
-    - name: Expose Server to Internet & Keep Alive
+    # 4. Install Cloudflare & Expose Server
+    - name: Expose Server via Cloudflare Tunnel & Keep Alive
       run: |
-        echo "Starting Localtunnel..."
-        # Localtunnel ko background me chalayein aur public URL generate karein
-        nohup npx localtunnel --port 20128 > public_url.txt 2>&1 &
+        echo "Installing Cloudflare Tunnel..."
+        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        sudo dpkg -i cloudflared-linux-amd64.deb
         
-        # URL generate hone ka wait karein
-        sleep 5 
+        echo "Starting Cloudflare Tunnel..."
+        nohup cloudflared tunnel --url http://localhost:20128 > cloudflared.log 2>&1 &
+        
+        # URL generate hone ke liye 10 seconds wait kda
+        sleep 10
         
         echo "=========================================="
-        echo "🚀 APNA DASHBOARD YAHAN OPEN KAREIN:"
-        cat public_url.txt
+        echo "🚀 APNA DASHBOARD YAHAN OPEN KDO:"
+        # Yeh line URL nikal kar uske aage automatically /dashboard laga degi
+        grep -o 'https://[-0-9a-zA-Z]*\.trycloudflare\.com' cloudflared.log | awk '{print $1"/dashboard"}'
         echo "=========================================="
         
+        # 5. Keep workflow alive for 6 hours
         echo "Keeping workflow alive for 6 hours..."
         sleep 21600
