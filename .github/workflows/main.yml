@@ -1,0 +1,45 @@
+name: 9Router Workflow Setup
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  run-9router:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # 1. 9Router ko globally install karein jaisa unke docs me bataya gaya hai
+    - name: Install 9Router Globally
+      run: npm install -g 9router
+
+    # 2. Server ko background me start karein taaki runner process block na ho
+    - name: Start 9Router Server
+      run: |
+        9router &
+        echo "Waiting for 9Router to spin up..."
+        sleep 5 # Server initialization ke liye thoda time gap
+
+    # 3. Verify karein ki localhost:20128/v1 up aur active hai ya nahi
+    - name: Verify Local URLs and Logs
+      env:
+        OPENAI_API_BASE: "http://localhost:20128/v1"
+      run: |
+        echo "=== Checking Local Endpoint Status ==="
+        curl -I http://localhost:20128/v1 || echo "Could not connect to API yet, checking dashboard..."
+        
+        echo "=== Checking Dashboard Endpoint ==="
+        curl -I http://localhost:20128/dashboard || echo "Dashboard unreachable"
+        
+        # Agar aapka koi custom script ya bot is API base ko use karta hai, toh use yahan run karein:
+        # python main.py ya npm start
