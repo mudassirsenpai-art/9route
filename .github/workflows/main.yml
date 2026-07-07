@@ -1,4 +1,4 @@
-name: 9Router Workflow Setup
+name: OmniRoute Workflow Setup
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  run-9router:
+  run-omniroute:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,21 +19,21 @@ jobs:
       with:
         node-version: '20'
 
-    # 1. Install 9Router
-    - name: Install 9Router Globally
-      run: npm install -g 9router
+    # 1. Install OmniRoute Globally
+    - name: Install OmniRoute
+      run: npm install -g omniroute
 
-    # 2. Start 9Router in background
-    - name: Start 9Router Server
+    # 2. Start OmniRoute in background
+    - name: Start OmniRoute Server
       run: |
-        nohup 9router > router.log 2>&1 &
-        echo "9Router started in background."
+        nohup omniroute > router.log 2>&1 &
+        echo "OmniRoute started in background."
         
-    # 3. Wait for localhost to be ready
+    # 3. Wait for localhost to be ready (Port changed to 20120)
     - name: Verify Server is Live
       run: |
-        echo "Waiting for localhost:20128..."
-        npx wait-on http://localhost:20128/v1 -t 60000
+        echo "Waiting for 127.0.0.1:20120..."
+        npx wait-on http://127.0.0.1:20120/v1 -t 60000
         echo "Server is UP!"
 
     # 4. Install Cloudflare & Expose Server
@@ -44,15 +44,16 @@ jobs:
         sudo dpkg -i cloudflared-linux-amd64.deb
         
         echo "Starting Cloudflare Tunnel..."
-        nohup cloudflared tunnel --url http://localhost:20128 > cloudflared.log 2>&1 &
+        # IPv4 (127.0.0.1) aur Port 20120 use kda rahe hain taaki 502 error na aaye
+        nohup cloudflared tunnel --url http://127.0.0.1:20120 > cloudflared.log 2>&1 &
         
-        # URL generate hone ke liye 10 seconds wait kda
+        # URL generate hone ke liye 10 seconds wait kdo
         sleep 10
         
         echo "=========================================="
         echo "🚀 APNA DASHBOARD YAHAN OPEN KDO:"
-        # Yeh line URL nikal kar uske aage automatically /dashboard laga degi
-        grep -o 'https://[-0-9a-zA-Z]*\.trycloudflare\.com' cloudflared.log | awk '{print $1"/dashboard"}'
+        # OmniRoute ka dashboard root par hai, isliye /dashboard hatwa diya hai
+        grep -o 'https://[-0-9a-zA-Z]*\.trycloudflare\.com' cloudflared.log
         echo "=========================================="
         
         # 5. Keep workflow alive for 6 hours
