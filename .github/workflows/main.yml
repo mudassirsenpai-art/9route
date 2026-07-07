@@ -29,12 +29,16 @@ jobs:
         nohup omniroute > router.log 2>&1 &
         echo "OmniRoute started in background."
         
-    # 3. Wait for localhost to be ready (Port changed to 20120)
+    # 3. Wait for localhost dashboard to be ready (Fixed: Removed /v1)
     - name: Verify Server is Live
       run: |
         echo "Waiting for 127.0.0.1:20120..."
-        npx wait-on http://127.0.0.1:20120/v1 -t 60000
+        # Yahan exactly root check kda rahe hain
+        npx wait-on http://127.0.0.1:20120 -t 60000
         echo "Server is UP!"
+        
+        echo "=== OmniRoute Logs ==="
+        cat router.log || true
 
     # 4. Install Cloudflare & Expose Server
     - name: Expose Server via Cloudflare Tunnel & Keep Alive
@@ -44,15 +48,13 @@ jobs:
         sudo dpkg -i cloudflared-linux-amd64.deb
         
         echo "Starting Cloudflare Tunnel..."
-        # IPv4 (127.0.0.1) aur Port 20120 use kda rahe hain taaki 502 error na aaye
         nohup cloudflared tunnel --url http://127.0.0.1:20120 > cloudflared.log 2>&1 &
         
-        # URL generate hone ke liye 10 seconds wait kdo
+        # URL generate hone ke liye 10 seconds wait
         sleep 10
         
         echo "=========================================="
         echo "🚀 APNA DASHBOARD YAHAN OPEN KDO:"
-        # OmniRoute ka dashboard root par hai, isliye /dashboard hatwa diya hai
         grep -o 'https://[-0-9a-zA-Z]*\.trycloudflare\.com' cloudflared.log
         echo "=========================================="
         
