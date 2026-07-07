@@ -19,27 +19,34 @@ jobs:
       with:
         node-version: '20'
 
-    # 1. 9Router ko globally install karein jaisa unke docs me bataya gaya hai
+    # 1. 9Router ko globally install karein
     - name: Install 9Router Globally
       run: npm install -g 9router
 
-    # 2. Server ko background me start karein taaki runner process block na ho
+    # 2. Server ko background me 'nohup' se run karein taaki step end hone par process kill na ho
     - name: Start 9Router Server
       run: |
-        9router &
-        echo "Waiting for 9Router to spin up..."
-        sleep 5 # Server initialization ke liye thoda time gap
-
-    # 3. Verify karein ki localhost:20128/v1 up aur active hai ya nahi
-    - name: Verify Local URLs and Logs
+        nohup 9router > router.log 2>&1 &
+        echo "9Router started in background."
+        
+    # 3. Wait karein jab tak localhost activate nahi ho jata, phir tasks perform karein
+    - name: Verify and Keep Workflow Alive
       env:
         OPENAI_API_BASE: "http://localhost:20128/v1"
       run: |
-        echo "=== Checking Local Endpoint Status ==="
-        curl -I http://localhost:20128/v1 || echo "Could not connect to API yet, checking dashboard..."
+        echo "Waiting for localhost:20128 to be active..."
+        # 1 minut tak check karega jab tak port up nahi ho jati
+        npx wait-on http://localhost:20128/v1 -t 60000
         
-        echo "=== Checking Dashboard Endpoint ==="
-        curl -I http://localhost:20128/dashboard || echo "Dashboard unreachable"
+        echo "=== Server is Live! ==="
+        curl -I http://localhost:20128/v1
         
-        # Agar aapka koi custom script ya bot is API base ko use karta hai, toh use yahan run karein:
-        # python main.py ya npm start
+        echo "=== Printing 9Router Boot Logs ==="
+        cat router.log
+        
+        # ----------------------------------------------------
+        # WARNING: GitHub Actions ki maximum limit 6 hours hoti hai.
+        # Agar aapko ise maximum limit tak 'alive' rakhna hai toh niche wali line uncomment karein:
+        # ----------------------------------------------------
+        echo "Keeping workflow alive..."
+        sleep 21600 # 6 hours in seconds (Aap iski jagah apna actual test script ya bot command run kar sakte hain)
